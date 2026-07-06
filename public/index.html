@@ -1,80 +1,334 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Scratch Video Encoder</title>
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
 
-<head>
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    sans-serif;
+                background: #f0f4ff;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 24px;
+            }
 
-    <title>
-        Scratch Video Encoder
-    </title>
+            .card {
+                background: #fff;
+                border-radius: 16px;
+                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+                padding: 40px;
+                width: 100%;
+                max-width: 600px;
+            }
 
-</head>
+            .logo {
+                font-size: 28px;
+                margin-bottom: 4px;
+            }
 
-<body>
+            h1 {
+                font-size: 22px;
+                font-weight: 700;
+                color: #1a1a2e;
+                margin-bottom: 6px;
+            }
 
-    <h1>
-        MP4 → Scratch Video
-    </h1>
+            .subtitle {
+                font-size: 14px;
+                color: #6b7280;
+                margin-bottom: 32px;
+            }
 
-    <input
-        type="file"
-        id="video"
-    >
+            .drop-zone {
+                border: 2px dashed #c7d2fe;
+                border-radius: 12px;
+                padding: 36px 24px;
+                text-align: center;
+                cursor: pointer;
+                transition:
+                    border-color 0.2s,
+                    background 0.2s;
+                margin-bottom: 20px;
+                background: #f8f9ff;
+            }
 
-    <button onclick="upload()">
-        Encode
-    </button>
+            .drop-zone:hover,
+            .drop-zone.dragover {
+                border-color: #6366f1;
+                background: #eef0ff;
+            }
 
-    <br><br>
+            .drop-zone.has-file {
+                border-color: #6366f1;
+                background: #eef0ff;
+            }
 
-    <textarea
+            .drop-icon {
+                font-size: 36px;
+                margin-bottom: 10px;
+            }
 
-        id="output"
+            .drop-label {
+                font-size: 15px;
+                color: #374151;
+                font-weight: 500;
+            }
 
-        style="
-            width:100%;
-            height:300px;
-        "
+            .drop-hint {
+                font-size: 13px;
+                color: #9ca3af;
+                margin-top: 4px;
+            }
 
-    ></textarea>
+            .file-name {
+                font-size: 13px;
+                color: #6366f1;
+                font-weight: 600;
+                margin-top: 8px;
+                word-break: break-all;
+            }
 
-    <script>
+            #fileInput {
+                display: none;
+            }
 
-        async function upload() {
+            button {
+                width: 100%;
+                padding: 13px;
+                background: #6366f1;
+                color: #fff;
+                border: none;
+                border-radius: 10px;
+                font-size: 15px;
+                font-weight: 600;
+                cursor: pointer;
+                transition:
+                    background 0.2s,
+                    opacity 0.2s;
+                margin-bottom: 24px;
+            }
 
-            const file =
+            button:hover:not(:disabled) {
+                background: #4f46e5;
+            }
 
-            document
-            .getElementById("video")
-            .files[0];
+            button:disabled {
+                opacity: 0.55;
+                cursor: not-allowed;
+            }
 
-            const formData =
-            new FormData();
+            .progress {
+                display: none;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 16px;
+                color: #6366f1;
+                font-size: 14px;
+                font-weight: 500;
+            }
 
-            formData.append(
-                "video",
-                file
-            );
+            .spinner {
+                width: 18px;
+                height: 18px;
+                border: 2px solid #c7d2fe;
+                border-top-color: #6366f1;
+                border-radius: 50%;
+                animation: spin 0.7s linear infinite;
+                flex-shrink: 0;
+            }
 
-            const response =
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
 
-            await fetch("/upload", {
+            .output-label {
+                font-size: 13px;
+                font-weight: 600;
+                color: #374151;
+                margin-bottom: 8px;
+            }
 
-                method: "POST",
+            textarea {
+                width: 100%;
+                height: 180px;
+                border: 1.5px solid #e5e7eb;
+                border-radius: 10px;
+                padding: 12px;
+                font-family: "SF Mono", "Fira Code", monospace;
+                font-size: 12px;
+                color: #374151;
+                resize: vertical;
+                outline: none;
+                transition: border-color 0.2s;
+                background: #fafafa;
+            }
 
-                body: formData
+            textarea:focus {
+                border-color: #6366f1;
+            }
 
+            .copy-btn {
+                margin-top: 10px;
+                background: #f3f4f6;
+                color: #374151;
+                font-size: 13px;
+                padding: 9px;
+                margin-bottom: 0;
+            }
+
+            .copy-btn:hover:not(:disabled) {
+                background: #e5e7eb;
+            }
+
+            .error {
+                display: none;
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                color: #b91c1c;
+                border-radius: 8px;
+                padding: 10px 14px;
+                font-size: 13px;
+                margin-bottom: 16px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="card">
+            <div class="logo">🎬</div>
+            <h1>Scratch Video Encoder</h1>
+            <p class="subtitle">
+                Convert an MP4 into an encoded string you can paste into
+                Scratch.
+            </p>
+
+            <div
+                class="drop-zone"
+                id="dropZone"
+                onclick="document.getElementById('fileInput').click()"
+            >
+                <div class="drop-icon">📁</div>
+                <div class="drop-label">Choose a video file</div>
+                <div class="drop-hint">or drag and drop an MP4 here</div>
+                <div class="file-name" id="fileName"></div>
+            </div>
+
+            <input type="file" id="fileInput" accept="video/mp4,video/*" />
+
+            <div class="error" id="error"></div>
+
+            <div class="progress" id="progress">
+                <div class="spinner"></div>
+                Encoding… this may take a moment
+            </div>
+
+            <button id="encodeBtn" onclick="upload()" disabled>Encode</button>
+
+            <div class="output-label">Encoded output</div>
+            <textarea
+                id="output"
+                placeholder="Your encoded Scratch video string will appear here…"
+                readonly
+            ></textarea>
+            <button class="copy-btn" onclick="copyOutput()">
+                Copy to clipboard
+            </button>
+        </div>
+
+        <script>
+            const dropZone = document.getElementById("dropZone");
+            const fileInput = document.getElementById("fileInput");
+            const encodeBtn = document.getElementById("encodeBtn");
+            const fileNameEl = document.getElementById("fileName");
+            const progress = document.getElementById("progress");
+            const errorEl = document.getElementById("error");
+            let selectedFile = null;
+
+            fileInput.addEventListener("change", () => {
+                if (fileInput.files[0]) selectFile(fileInput.files[0]);
             });
 
-            const text =
-            await response.text();
+            dropZone.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                dropZone.classList.add("dragover");
+            });
 
-            document
-            .getElementById("output")
-            .value = text;
+            dropZone.addEventListener("dragleave", () => {
+                dropZone.classList.remove("dragover");
+            });
 
-        }
+            dropZone.addEventListener("drop", (e) => {
+                e.preventDefault();
+                dropZone.classList.remove("dragover");
+                if (e.dataTransfer.files[0])
+                    selectFile(e.dataTransfer.files[0]);
+            });
 
-    </script>
+            function selectFile(file) {
+                selectedFile = file;
+                fileNameEl.textContent = file.name;
+                dropZone.classList.add("has-file");
+                encodeBtn.disabled = false;
+                hideError();
+            }
 
-</body>
+            function showError(msg) {
+                errorEl.textContent = msg;
+                errorEl.style.display = "block";
+            }
+
+            function hideError() {
+                errorEl.style.display = "none";
+            }
+
+            async function upload() {
+                if (!selectedFile) return;
+
+                hideError();
+                encodeBtn.disabled = true;
+                progress.style.display = "flex";
+                document.getElementById("output").value = "";
+
+                const formData = new FormData();
+                formData.append("video", selectedFile);
+
+                try {
+                    const response = await fetch("/upload", {
+                        method: "POST",
+                        body: formData,
+                    });
+
+                    if (!response.ok)
+                        throw new Error("Server error — encoding failed.");
+
+                    const text = await response.text();
+                    document.getElementById("output").value = text;
+                } catch (err) {
+                    showError(err.message || "Something went wrong.");
+                } finally {
+                    progress.style.display = "none";
+                    encodeBtn.disabled = false;
+                }
+            }
+
+            async function copyOutput() {
+                const text = document.getElementById("output").value;
+                if (!text) return;
+                await navigator.clipboard.writeText(text);
+            }
+        </script>
+    </body>
 </html>
